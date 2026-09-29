@@ -17,7 +17,7 @@ Se implementa el proceso de inferencia de **PEGASUS**, un Transformer encoder-de
 
 Además de la inferencia, la implementación extrae del modelo las matrices `q_proj`, `k_proj` y `v_proj`, calcula Q, K y V a mano y reconstruye la fórmula de atención. El resultado se compara contra los pesos que reporta el propio modelo: **la diferencia es 0.0 en las 16 capas del decoder**, lo que confirma que la interpretación corresponde al cálculo real.
 
-Sobre un documento de 148 tokens el sistema generó un resumen de 81 tokens (compresión 1,8x) en 4,5 segundos sobre CPU.
+Sobre un documento de 148 tokens el sistema generó un resumen de 81 tokens (compresión 1,8x). En una prueba local sobre Windows y CPU tardó 34,7 segundos; el tiempo depende del equipo.
 
 ---
 
@@ -87,9 +87,9 @@ No se entrena desde cero: se usan los **pesos preentrenados** publicados por los
 
 | Herramienta | Versión |
 |---|---|
-| Python | 3.14 |
-| PyTorch | 2.13 |
-| Transformers | 4.49 |
+| Python | 3.11 (prueba local en Windows) |
+| PyTorch | 2.14.0 |
+| Transformers | 5.17.0 |
 | SentencePiece | 0.2.2 |
 | Streamlit | 1.64 |
 | Matplotlib | 3.11 |
@@ -99,12 +99,13 @@ Ejecución local sobre CPU. El checkpoint pesa 2,2 GB y queda en caché tras la 
 **Estructura del código**
 
 ```
-├── nucleo.py           # Carga del modelo, inferencia y cálculo de Q, K y V
-├── app.py    # Interfaz web 
-└── capturas/
+├── core.py             # Carga del modelo, inferencia y cálculo de Q, K y V
+├── app.py              # Interfaz web
+├── tests/prueba_humo.py # Prueba del cálculo de atención
+└── capturas/           # Evidencia de la ejecución local
 ```
 
-La lógica del modelo está aislada en `nucleo.py`, así que ambas interfaces usan el mismo código de inferencia.
+La lógica del modelo está aislada en `core.py`; `app.py` la utiliza para la inferencia y la visualización.
 
 ---
 
@@ -114,8 +115,20 @@ La lógica del modelo está aislada en `nucleo.py`, así que ambas interfaces us
 
 ```bash
 pip install -r requirements.txt
-streamlit run app.py      # http://localhost:8501 
+streamlit run app.py --server.fileWatcherType none  # http://localhost:8501
 ```
+
+En Windows PowerShell (con Python 3.11 instalado):
+
+```powershell
+git clone https://github.com/AndresBPaz/Project_ProcesamientoDatosUAO.git
+cd Project_ProcesamientoDatosUAO
+py -3.11 -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -r requirements.txt
+.\.venv\Scripts\python.exe -m streamlit run app.py --server.fileWatcherType none
+```
+
+La primera ejecución descarga el checkpoint. Mantenga abierta la consola y visite `http://localhost:8501`. La opción `fileWatcherType none` evita que el observador de Streamlit inspeccione módulos opcionales de Transformers en Windows. Para ejecutar la prueba de atención: `.\.venv\Scripts\python.exe tests\prueba_humo.py`.
 
 ### Carga de pesos
 
@@ -161,7 +174,7 @@ PEGASUS usa **normalización previa**, por lo que el estado que recibe el módul
 |---|---|
 | Tokens entrada / salida | 148 / 81 |
 | Compresión | 1,8x |
-| Tiempo (CPU) | 4,5 s |
+| Tiempo (CPU, prueba local en Windows) | 34,7 s |
 
 ### Formas de los tensores
 
@@ -187,8 +200,11 @@ PEGASUS usa **normalización previa**, por lo que el estado que recibe el módul
 **Figura 2. Salida, métricas y formas de Q, K y V**
 ![Salida](capturas/02-salida-qkv.png)
 
-**Figura 3. Verificación y mapa de atención cruzada**
-![Atención](capturas/03-atencion.png)
+**Figura 3. Verificación de Q, K y V**
+![Verificación](capturas/03-qkv.png)
+
+**Figura 4. Mapa de atención cruzada**
+![Atención](capturas/04-atencion.png)
 
 ### Análisis
 

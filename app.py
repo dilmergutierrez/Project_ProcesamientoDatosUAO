@@ -1,4 +1,3 @@
-import resource
 import sys
 
 import matplotlib
@@ -8,11 +7,9 @@ import pandas as pd
 import streamlit as st
 
 
-# --- diagnostico temporal: cuanta memoria se usa y hasta donde llega el arranque
-# En Linux, ru_maxrss viene en kilobytes.
+# Diagnostico de arranque compatible con Windows y Linux.
 def _diag(etapa):
-    mb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
-    print(f"[diag] {etapa} | RSS maximo {mb:.0f} MB", flush=True)
+    print(f"[diag] {etapa}", flush=True)
     sys.stdout.flush()
 
 
@@ -44,9 +41,9 @@ st.caption("Zhang, Zhao, Saleh y Liu (2020), ICML 2020 - arXiv:1912.08777  |  "
 with st.sidebar:
     st.subheader("Arquitectura")
     st.table(pd.DataFrame({
-        "Valor": [cfg.encoder_layers, cfg.decoder_layers, cfg.d_model,
-                  cfg.decoder_attention_heads, cfg.d_model // cfg.decoder_attention_heads,
-                  cfg.decoder_ffn_dim, f"{cfg.vocab_size:,}", cfg.max_position_embeddings,
+        "Valor": [str(cfg.encoder_layers), str(cfg.decoder_layers), str(cfg.d_model),
+                  str(cfg.decoder_attention_heads), str(cfg.d_model // cfg.decoder_attention_heads),
+                  str(cfg.decoder_ffn_dim), f"{cfg.vocab_size:,}", str(cfg.max_position_embeddings),
                   f"{sum(p.numel() for p in modelo.parameters())/1e6:.0f} M"]},
         index=["Capas encoder", "Capas decoder", "d_model", "Cabezas", "d_k",
                "Feed-forward", "Vocabulario", "Entrada max.", "Parametros"]))
@@ -141,3 +138,4 @@ if res:
     fig.colorbar(im, ax=ax, label="peso")
     fig.tight_layout()
     st.pyplot(fig)
+    plt.close(fig)
