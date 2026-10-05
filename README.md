@@ -1,247 +1,217 @@
-# Despliegue e interpretación de PEGASUS para resumen abstractivo
+# PEGASUS Abstractive Summarization & Attention Interpretation
 
-Proyecto final — Procesamiento de Datos Secuenciales
-Maestría en Inteligencia artificial y ciencias de datos, Universidad Autónoma de Occidente
+> Academic NLP project focused on **abstractive text summarization**, **Transformer attention**, and the interpretation of **Q, K, and V** using the pretrained PEGASUS model.
 
-Integrantes: 
+**Master's in Artificial Intelligence and Data Analytics — Universidad Autónoma de Occidente**
 
-Andres David Bolaños, 
-Dilmer Gutierrez
-Eliana Ordoñez
-Eliana Vanessa Cardona Burbano
+## Project overview
 
+This project implements inference with `google/pegasus-cnn_dailymail` and exposes it through an interactive **Streamlit** application.
 
-## 1. Resumen
+Beyond generating summaries, the project inspects the decoder cross-attention mechanism by extracting the learned `q_proj`, `k_proj`, and `v_proj` projections, manually reconstructing:
 
-Se implementa el proceso de inferencia de **PEGASUS**, un Transformer encoder-decoder para resumen abstractivo, y se despliega en una interfaz interactiva que recibe un documento y devuelve su resumen.
-
-Además de la inferencia, la implementación extrae del modelo las matrices `q_proj`, `k_proj` y `v_proj`, calcula Q, K y V a mano y reconstruye la fórmula de atención. El resultado se compara contra los pesos que reporta el propio modelo: **la diferencia es 0.0 en las 16 capas del decoder**, lo que confirma que la interpretación corresponde al cálculo real.
-
-Sobre un documento de 148 tokens el sistema generó un resumen de 81 tokens (compresión 1,8x). En una prueba local sobre Windows y CPU tardó 34,7 segundos; el tiempo depende del equipo.
-
----
-
-## 2. Introducción
-
-**Artículo base:** J. Zhang, Y. Zhao, M. Saleh y P. J. Liu, *PEGASUS: Pre-training with Extracted Gap-sentences for Abstractive Summarization*, ICML 2020.
-
-- Artículo: https://arxiv.org/abs/1912.08777
-- Repositorio original: https://github.com/google-research/pegasus
-- Checkpoint: `google/pegasus-cnn_dailymail`
-
-**Problema.** El resumen extractivo copia oraciones del documento; el abstractivo genera texto nuevo, como haría una persona. El segundo es más difícil y es el que aborda PEGASUS.
-
-**Motivación.** Conseguir pares documento-resumen anotados es costoso. El aporte práctico del artículo es reducir esa necesidad: con 1.000 ejemplos de ajuste supera el estado del arte previo en 6 de 12 conjuntos.
-
-**Objetivo.** Implementar la inferencia de una arquitectura Transformer encoder-decoder, desplegarla en una interfaz y explicar su mecanismo de atención y la generación de Q, K y V.
-
----
-
-## 3. Marco teórico
-
-### Arquitectura
-
-PEGASUS usa el Transformer encoder-decoder de Vaswani et al. (2017) **sin cambios estructurales**. Valores leídos del checkpoint:
-
-| Componente | Valor | | Componente | Valor |
-|---|---|---|---|---|
-| Capas encoder | 16 | | Feed-forward | 4096 |
-| Capas decoder | 16 | | Vocabulario | 96.103 |
-| d_model | 1024 | | Entrada máxima | 1024 tokens |
-| Cabezas | 16 | | Parámetros | 571 M |
-| d_k | 64 | | | |
-
-Cada capa del encoder tiene dos subcapas (autoatención y feed-forward); cada capa del decoder tiene tres, porque añade la atención cruzada.
-
-### Mecanismo de atención
-
-| Tipo | Ubicación | Q viene de | K y V vienen de |
-|---|---|---|---|
-| Autoatención | Encoder | documento | documento |
-| Autoatención enmascarada | Decoder | resumen parcial | resumen parcial |
-| Atención cruzada | Decoder | resumen parcial | salida del encoder |
-
-En la **atención cruzada**, que es la relevante para resumir:
-
-- **Q (query)** sale del resumen en construcción: *«¿qué necesito del documento para la siguiente palabra?»*
-- **K (key)** sale del documento: la etiqueta con la que cada token se anuncia.
-- **V (value)** sale del documento: el contenido que aporta si resulta elegido.
-
-Las tres se obtienen multiplicando por matrices aprendidas distintas (`q_proj`, `k_proj`, `v_proj`, de 1024×1024), repartidas en 16 cabezas de 64 dimensiones. Luego se aplica:
-
-```
-Attention(Q, K, V) = softmax( Q · Kᵀ / √d_k ) · V
+```text
+Attention(Q, K, V) = softmax(Q · Kᵀ / √d_k) · V
 ```
 
-con `d_k = 64` y escala `1/√64 = 0,125`. La división evita que el softmax se sature.
+and comparing the result with the attention weights returned by the model.
 
-### Innovación
+In the documented test case, the manual calculation matches the model with a **maximum difference of 0.0 across all 16 decoder layers**.
 
-La arquitectura no es la innovación. El aporte es el **objetivo de preentrenamiento**, *Gap Sentences Generation*: en lugar de enmascarar palabras sueltas como BERT, se eliminan **oraciones completas** —las más importantes, medidas por su ROUGE1-F1 contra el resto del documento— y se entrena al modelo a generarlas. Como esa tarea se parece a resumir, el modelo aprende mejor y necesita menos datos etiquetados.
+## Why this project matters
 
----
+This repository demonstrates practical work with:
 
-## 4. Metodología
+- Natural Language Processing (NLP)
+- Transformer encoder-decoder architectures
+- Abstractive summarization
+- PyTorch and Hugging Face Transformers
+- Attention mechanism interpretation
+- Q/K/V tensor analysis
+- Streamlit application development
+- Model inference and visualization
 
-No se entrena desde cero: se usan los **pesos preentrenados** publicados por los autores y se implementa solo la inferencia.
+## Key results
 
-| Herramienta | Versión |
-|---|---|
-| Python | 3.11 (prueba local en Windows) |
-| PyTorch | 2.14.0 |
-| Transformers | 5.17.0 |
-| SentencePiece | 0.2.2 |
-| Streamlit | 1.64 |
-| Matplotlib | 3.11 |
+| Metric | Result |
+|---|---:|
+| Input tokens | 148 |
+| Output tokens | 81 |
+| Compression | 1.8x |
+| Local CPU inference time | 34.7 s |
+| Decoder layers verified | 16 / 16 |
+| Max. manual-vs-model attention difference | 0.0 |
 
-Ejecución local sobre CPU. El checkpoint pesa 2,2 GB y queda en caché tras la primera descarga.
+> Runtime depends on the local hardware and software environment.
 
-**Estructura del código**
+## Architecture
 
+PEGASUS uses a Transformer encoder-decoder architecture. For the `google/pegasus-cnn_dailymail` checkpoint used in this project:
+
+| Component | Value |
+|---|---:|
+| Encoder layers | 16 |
+| Decoder layers | 16 |
+| Model dimension | 1024 |
+| Attention heads | 16 |
+| Head dimension | 64 |
+| Feed-forward dimension | 4096 |
+| Vocabulary | 96,103 |
+| Maximum input length | 1,024 tokens |
+| Parameters | ~571M |
+
+### Cross-attention
+
+In decoder cross-attention:
+
+- **Q (Query)** comes from the summary being generated.
+- **K (Key)** comes from the source document.
+- **V (Value)** comes from the source document.
+
+The implementation uses forward hooks to capture the exact tensors entering the cross-attention modules. This is important because PEGASUS uses pre-layer normalization, so using the wrong hidden state produces a mismatch.
+
+## Application
+
+The Streamlit interface lets the user:
+
+1. Enter or upload an English text document.
+2. Generate an abstractive summary.
+3. Inspect token counts, compression, and inference time.
+4. Select a decoder layer and attention head.
+5. Inspect Q, K, V, attention weights, and context tensor shapes.
+6. Compare the manual attention calculation against the model.
+7. Visualize cross-attention as a heatmap.
+
+## Screenshots
+
+### Input and architecture
+![Input and architecture](capturas/01-entrada.png)
+
+### Summary, metrics, and Q/K/V shapes
+![Output and QKV](capturas/02-salida-qkv.png)
+
+### Q/K/V verification
+![QKV verification](capturas/03-qkv.png)
+
+### Cross-attention heatmap
+![Cross-attention](capturas/04-atencion.png)
+
+## Repository structure
+
+```text
+.
+├── app.py                      # Streamlit user interface
+├── core.py                     # Model loading, inference, Q/K/V and attention logic
+├── requirements.txt            # Python dependencies
+├── tests/
+│   └── prueba_humo.py          # Smoke test for attention reconstruction
+├── capturas/                   # Execution evidence and screenshots
+├── .github/workflows/
+│   └── deploy.yml              # Dependency and Q/K/V validation workflow
+└── .devcontainer/
+    └── devcontainer.json       # Development container configuration
 ```
-├── core.py             # Carga del modelo, inferencia y cálculo de Q, K y V
-├── app.py              # Interfaz web
-├── tests/prueba_humo.py # Prueba del cálculo de atención
-└── capturas/           # Evidencia de la ejecución local
-```
 
-La lógica del modelo está aislada en `core.py`; `app.py` la utiliza para la inferencia y la visualización.
+## Local setup
 
----
+### Requirements
 
-## 5. Desarrollo e implementación
+- Python 3.11 recommended for the documented Windows setup
+- Sufficient disk space for the PEGASUS checkpoint (~2.2 GB)
+- Internet access on the first execution to download the model
 
-### Ejecución
-
-```bash
-pip install -r requirements.txt
-streamlit run app.py --server.fileWatcherType none  # http://localhost:8501
-```
-
-En Windows PowerShell (con Python 3.11 instalado):
+### Windows PowerShell
 
 ```powershell
-git clone https://github.com/AndresBPaz/Project_ProcesamientoDatosUAO.git
+git clone https://github.com/dilmergutierrez/Project_ProcesamientoDatosUAO.git
 cd Project_ProcesamientoDatosUAO
+
 py -3.11 -m venv .venv
 .\.venv\Scripts\python.exe -m pip install -r requirements.txt
 .\.venv\Scripts\python.exe -m streamlit run app.py --server.fileWatcherType none
 ```
 
-La primera ejecución descarga el checkpoint. Mantenga abierta la consola y visite `http://localhost:8501`. La opción `fileWatcherType none` evita que el observador de Streamlit inspeccione módulos opcionales de Transformers en Windows. Para ejecutar la prueba de atención: `.\.venv\Scripts\python.exe tests\prueba_humo.py`.
+Open:
 
-### Carga de pesos
-
-```python
-tok = AutoTokenizer.from_pretrained("google/pegasus-cnn_dailymail")
-mod = AutoModelForSeq2SeqLM.from_pretrained("google/pegasus-cnn_dailymail")
-mod.eval()
+```text
+http://localhost:8501
 ```
 
-En Streamlit se envuelve en `@st.cache_resource` para que el modelo no se recargue en cada interacción.
+### Linux / macOS
 
-### Preprocesamiento
+```bash
+git clone https://github.com/dilmergutierrez/Project_ProcesamientoDatosUAO.git
+cd Project_ProcesamientoDatosUAO
 
-El tokenizador SentencePiece convierte el texto en dos tensores: `input_ids` (1, 148) con los identificadores del vocabulario, y `attention_mask` (1, 148) que marca qué posiciones son texto real.
-
-### Inferencia
-
-```python
-generados = mod.generate(**entradas, num_beams=4, length_penalty=0.8, max_length=128)
+python -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+streamlit run app.py --server.fileWatcherType none
 ```
 
-El decoder genera de forma autorregresiva: en cada paso calcula una distribución sobre los 96.103 tokens del vocabulario y el token elegido condiciona el siguiente. Con `num_beams=4` mantiene las cuatro secuencias parciales más probables.
+## Smoke test
 
-### Extracción de Q, K y V
+To verify the attention reconstruction:
 
-PEGASUS usa **normalización previa**, por lo que el estado que recibe el módulo de atención cruzada no es el que entra a la capa. Tomar el tensor equivocado produce un error de 1,0. La solución fue capturar los tensores exactos con *forward hooks* sobre el módulo de atención, y con ellos reproducir la fórmula.
+```powershell
+.\.venv\Scripts\python.exe tests\prueba_humo.py
+```
 
----
+or on Linux/macOS:
 
-## 6. Resultados y análisis
+```bash
+python tests/prueba_humo.py
+```
 
-### Caso de prueba
+## Model
 
-**Entrada** (131 palabras, 148 tokens): noticia de la OMS sobre esperanza de vida global.
+The project uses the pretrained checkpoint:
 
-**Salida** (68 palabras, 81 tokens):
+```text
+google/pegasus-cnn_dailymail
+```
 
-> The World Health Organization announced that global life expectancy has increased by more than six years since the year 2000 . The agency attributed the improvement to better access to vaccines, cleaner drinking water and reductions in child mortality across low-income countries . However, the report warned that progress has slowed considerably since 2019, when the COVID-19 pandemic reversed several health gains and overwhelmed hospital systems worldwide .
+The model is loaded with eager attention because recent versions of Transformers may use SDPA by default, which does not expose the attention weights required for this interpretation workflow.
 
-### Métricas
+## Limitations
 
-| Métrica | Valor |
-|---|---|
-| Tokens entrada / salida | 148 / 81 |
-| Compresión | 1,8x |
-| Tiempo (CPU, prueba local en Windows) | 34,7 s |
+- The selected checkpoint is designed for English text.
+- Input is truncated at 1,024 tokens.
+- CNN/DailyMail tends to produce relatively extractive summaries even though generation is abstractive.
+- The current project does not report ROUGE over a complete benchmark test set.
+- CPU inference can be slow because the checkpoint is large.
 
-### Formas de los tensores
+## Possible next steps
 
-| Tensor | Forma | Origen |
-|---|---|---|
-| Q | (1, 16, 80, 64) | 80 posiciones del resumen |
-| K, V | (1, 16, 148, 64) | 148 tokens del documento |
-| Pesos | (1, 16, 80, 148) | cada palabra del resumen sobre cada token |
+- Evaluate ROUGE on a test subset.
+- Add a Lead-3 baseline for comparison.
+- Measure novel n-grams to quantify abstractive behavior.
+- Fine-tune or evaluate a model for Spanish.
+- Add encoder and decoder self-attention visualizations.
+- Package the project for a lightweight public demo.
 
-### Verificación
+## Academic context and contributors
 
-| | |
-|---|---|
-| Diferencia cálculo manual vs. modelo | **0.0** |
-| Capas verificadas | 16 de 16 |
-| Suma de cada fila de pesos | 1,000000 |
+This repository documents a collaborative academic project developed for **Procesamiento de Datos Secuenciales**.
 
-### Capturas
+Contributors:
 
-**Figura 1. Entrada y arquitectura**
-![Entrada](capturas/01-entrada.png)
+- Andres David Bolaños
+- Dilmer Gutierrez
+- Eliana Ordoñez
+- Eliana Vanessa Cardona Burbano
 
-**Figura 2. Salida, métricas y formas de Q, K y V**
-![Salida](capturas/02-salida-qkv.png)
+The repository is also used as part of Dilmer Gutierrez's technical portfolio to document the implementation, local execution, analysis, and learning outcomes from the project.
 
-**Figura 3. Verificación de Q, K y V**
-![Verificación](capturas/03-qkv.png)
+## References
 
-**Figura 4. Mapa de atención cruzada**
-![Atención](capturas/04-atencion.png)
-
-### Análisis
-
-**La salida es compresiva más que reescritura.** El mecanismo es abstractivo —el decoder genera libremente sobre todo el vocabulario— pero de las cinco oraciones del documento el modelo conservó tres y solo borró elementos accesorios. Es coherente con el checkpoint: CNN/DailyMail contiene resúmenes bastante extractivos y el modelo aprendió ese estilo. Un checkpoint ajustado sobre XSum reescribiría mucho más.
-
-**Attention sink.** Al promediar los pesos sobre las 16 cabezas, la atención se concentra en tokens poco informativos (preposiciones, puntuación) con pesos de 0,2 a 0,5. Por eso el mapa se muestra por cabeza individual: el promedio oculta la alineación real.
-
-**Fidelidad.** No se observaron datos inventados: todas las cifras del resumen aparecen en el documento.
+1. J. Zhang, Y. Zhao, M. Saleh, and P. J. Liu, *PEGASUS: Pre-training with Extracted Gap-sentences for Abstractive Summarization*, ICML 2020. https://arxiv.org/abs/1912.08777
+2. A. Vaswani et al., *Attention Is All You Need*, NeurIPS 2017.
+3. C.-Y. Lin, *ROUGE: A Package for Automatic Evaluation of Summaries*, ACL 2004.
+4. Google Research, PEGASUS repository: https://github.com/google-research/pegasus
 
 ---
 
-## 7. Conclusiones
+### Portfolio keywords
 
-**Aprendizajes.** El aporte de PEGASUS no está en la arquitectura sino en el diseño del objetivo de preentrenamiento. En la implementación, el aprendizaje principal fue que entender la teoría no equivale a poder reproducirla: el primer cálculo de Q·K daba error 1,0 por tomar el estado de entrada de la capa, que es lo que sugiere el diagrama clásico. Solo al advertir la normalización previa y usar hooks el cálculo coincidió con el modelo.
-
-**Limitaciones.**
-
-1. Los checkpoints son de inglés; con español la salida es incoherente.
-2. La entrada máxima es de 1.024 tokens y los documentos largos se truncan.
-3. El ajuste sobre CNN/DailyMail sesga la salida hacia la compresión.
-4. No se calcularon métricas ROUGE sobre un conjunto de prueba completo.
-
-**Mejoras posibles.**
-
-- Evaluar con ROUGE sobre el test de CNN/DailyMail y comparar con los 44,17 / 21,47 / 41,11 del artículo.
-- Añadir el baseline Lead-3 y medir n-gramas novedosos para cuantificar la abstracción.
-- Ajuste fino con corpus en español.
-- Visualizar también la autoatención del encoder y del decoder.
-
----
-
-## 8. Referencias
-
-[1] J. Zhang, Y. Zhao, M. Saleh y P. J. Liu, «PEGASUS: Pre-training with extracted gap-sentences for abstractive summarization», en *Proc. 37th Int. Conf. Mach. Learn. (ICML)*, vol. 119, PMLR, 2020. [En línea]. Disponible en: https://arxiv.org/abs/1912.08777
-
-[2] A. Vaswani *et al.*, «Attention is all you need», en *Adv. Neural Inf. Process. Syst. (NeurIPS)*, vol. 30, 2017, pp. 5998–6008.
-
-[3] C.-Y. Lin, «ROUGE: A package for automatic evaluation of summaries», en *Text Summarization Branches Out*, Barcelona, España: ACL, 2004, pp. 74–81.
-
-[4] Google Research, «PEGASUS», repositorio GitHub. [En línea]. Disponible en: https://github.com/google-research/pegasus
+`Python` · `NLP` · `Transformers` · `PEGASUS` · `PyTorch` · `Hugging Face` · `Streamlit` · `Attention` · `Machine Learning` · `Artificial Intelligence`
