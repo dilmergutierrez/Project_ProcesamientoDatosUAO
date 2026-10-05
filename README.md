@@ -1,10 +1,26 @@
-# PEGASUS Abstractive Summarization & Attention Interpretation
+<p align="center">
+  <img src="assets/portfolio-banner.svg" alt="PEGASUS Abstractive Summarization and Attention Interpretation" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://www.python.org/"><img alt="Python" src="https://img.shields.io/badge/Python-3.11%2B-3776AB?logo=python&logoColor=white"></a>
+  <a href="https://pytorch.org/"><img alt="PyTorch" src="https://img.shields.io/badge/PyTorch-2.14-EE4C2C?logo=pytorch&logoColor=white"></a>
+  <a href="https://huggingface.co/google/pegasus-cnn_dailymail"><img alt="Hugging Face" src="https://img.shields.io/badge/Hugging%20Face-PEGASUS-FFD21E"></a>
+  <a href="https://streamlit.io/"><img alt="Streamlit" src="https://img.shields.io/badge/Streamlit-1.64-FF4B4B?logo=streamlit&logoColor=white"></a>
+</p>
+
+<p align="center">
+  <strong>NLP · Transformers · Abstractive Summarization · Attention Interpretation · Q/K/V Analysis</strong>
+</p>
 
 > Academic NLP project focused on **abstractive text summarization**, **Transformer attention**, and the interpretation of **Q, K, and V** using the pretrained PEGASUS model.
 
 **Master's in Artificial Intelligence and Data Analytics — Universidad Autónoma de Occidente**
 
 ## Project overview
+
+**Portfolio focus:** this repository showcases hands-on work in NLP, Transformer architectures, model inference, attention interpretation, Python engineering, and Streamlit visualization.
+
 
 This project implements inference with `google/pegasus-cnn_dailymail` and exposes it through an interactive **Streamlit** application.
 
@@ -81,6 +97,10 @@ The Streamlit interface lets the user:
 5. Inspect Q, K, V, attention weights, and context tensor shapes.
 6. Compare the manual attention calculation against the model.
 7. Visualize cross-attention as a heatmap.
+
+## Demo preview
+
+The application combines summarization, model metrics, tensor inspection, manual attention verification, and an interactive cross-attention heatmap.
 
 ## Screenshots
 
