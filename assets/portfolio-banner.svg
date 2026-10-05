@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="360" viewBox="0 0 1200 360" role="img" aria-label="PEGASUS Abstractive Summarization and Attention Interpretation">
+  <defs>
+    <linearGradient id="bg" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#0d1117"/>
+      <stop offset="1" stop-color="#161b22"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" x2="1">
+      <stop offset="0" stop-color="#2f81f7"/>
+      <stop offset="1" stop-color="#a371f7"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="360" rx="28" fill="url(#bg)"/>
+  <circle cx="1045" cy="86" r="140" fill="#2f81f7" opacity=".08"/>
+  <circle cx="1120" cy="295" r="190" fill="#a371f7" opacity=".07"/>
+  <g opacity=".28" stroke="#58a6ff" stroke-width="2">
+    <path d="M825 85 L920 125 L1010 88 L1095 140"/>
+    <path d="M825 165 L915 195 L1015 170 L1100 220"/>
+    <path d="M835 245 L930 280 L1020 250 L1100 300"/>
+    <circle cx="825" cy="85" r="7" fill="#58a6ff"/>
+    <circle cx="920" cy="125" r="7" fill="#58a6ff"/>
+    <circle cx="1010" cy="88" r="7" fill="#58a6ff"/>
+    <circle cx="1095" cy="140" r="7" fill="#58a6ff"/>
+    <circle cx="825" cy="165" r="7" fill="#58a6ff"/>
+    <circle cx="915" cy="195" r="7" fill="#58a6ff"/>
+    <circle cx="1015" cy="170" r="7" fill="#58a6ff"/>
+    <circle cx="1100" cy="220" r="7" fill="#58a6ff"/>
+  </g>
+  <rect x="76" y="62" width="12" height="236" rx="6" fill="url(#accent)"/>
+  <text x="120" y="122" fill="#f0f6fc" font-family="Arial, Helvetica, sans-serif" font-size="42" font-weight="700">PEGASUS</text>
+  <text x="120" y="173" fill="#c9d1d9" font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="600">Abstractive Summarization</text>
+  <text x="120" y="214" fill="#8b949e" font-family="Arial, Helvetica, sans-serif" font-size="24">&amp; Transformer Attention Interpretation</text>
+  <text x="120" y="270" fill="#58a6ff" font-family="Arial, Helvetica, sans-serif" font-size="20">Python · PyTorch · Hugging Face · Streamlit · Q/K/V · NLP</text>
+</svg>
